@@ -48,7 +48,25 @@ struct CaptureCommand: AsyncParsableCommand {
 
         fmt.printHeader("Capturing \(cfg.screens.count) screens in \(targetLocales.count) locales on \(simDevice)\n")
 
-        // 3. Capture screenshots for each locale
+        // 3. Check accessibility permissions if any screen needs navigation
+        let hasNavigation = cfg.screens.contains { screen in
+            let action = try? ScreenAction.parse(screen.action)
+            switch action {
+            case .tap, .navigate: return true
+            default: return false
+            }
+        }
+
+        if hasNavigation {
+            do {
+                try TestRunner.checkAccessibility()
+            } catch {
+                fmt.printError(error.localizedDescription)
+                throw ExitCode(1)
+            }
+        }
+
+        // 4. Capture screenshots for each locale
         var allResults: [(locale: String, screens: [String])] = []
         var hadFailure = false
 
@@ -120,7 +138,6 @@ struct CaptureCommand: AsyncParsableCommand {
         let langCode = locale.components(separatedBy: "-").first ?? locale
         let localeCode = locale.replacingOccurrences(of: "-", with: "_")
 
-        // Set language
         let langProcess = Process()
         langProcess.executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")
         langProcess.arguments = [
@@ -130,7 +147,6 @@ struct CaptureCommand: AsyncParsableCommand {
         try langProcess.run()
         langProcess.waitUntilExit()
 
-        // Set locale
         let localeProcess = Process()
         localeProcess.executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")
         localeProcess.arguments = [

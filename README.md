@@ -17,6 +17,13 @@ swift build -c release
 cp .build/release/framehero /usr/local/bin/
 ```
 
+## Requirements
+
+- macOS 14+, Xcode 15+ with Simulator installed
+- A booted iOS Simulator (`xcrun simctl boot "iPhone 16 Pro Max"`)
+- **Accessibility permission** for your terminal app — required for `tap` and `navigate` actions.
+  Grant access in **System Settings > Privacy & Security > Accessibility** for Terminal, iTerm2, Warp, or whichever terminal you use. `framehero` will check this before capture and show a clear error if missing.
+
 ## Quick Start
 
 ```bash
@@ -127,6 +134,14 @@ Imported into FrameHero project "MyApp"
 {"locale":"ja-JP","screens":["Home","Search","Settings"],"count":3,"status":"ok"}
 {"total":9,"output":"./captures","project":"MyApp","imported":true}
 ```
+
+## Troubleshooting
+
+**"Accessibility permission required"** — `tap` and `navigate` actions use macOS Accessibility to interact with the Simulator window. Go to System Settings > Privacy & Security > Accessibility and add your terminal app.
+
+**Navigation not working** — Make sure the Simulator is visible on screen (not minimized) and the app is launched. The screen names in `framehero.yml` should match the order of sidebar items or tab bar items in your app.
+
+**Wrong screenshots** — `framehero` relaunches your app before each screen capture. If your app restores navigation state on launch, the initial screen may not be the root view. Consider resetting state on launch or using `launch` for the first screen only.
 
 ## License
 
