@@ -80,10 +80,11 @@ struct DeviceFrameCompositor {
     /// - Parameters:
     ///   - screenshot: URL of the source screenshot PNG.
     ///   - device: Display name of the device (e.g. "iPhone 16 Pro").
+    ///   - color: Frame color variant (e.g. "black-titanium"). Nil uses default.
     ///   - outputURL: Destination URL for the composited PNG.
     /// - Returns: The `outputURL` after writing.
     @discardableResult
-    static func frame(screenshot: URL, device: String, outputURL: URL) throws -> URL {
+    static func frame(screenshot: URL, device: String, color: String? = nil, outputURL: URL) throws -> URL {
         // 1. Resolve resource directory
         let key = normalizeKey(device)
         guard let deviceDir = deviceDirectoryMap[key] else {
@@ -97,8 +98,16 @@ struct DeviceFrameCompositor {
             throw FramingError.resourceNotFound("DeviceFrames/\(deviceDir)")
         }
 
-        // 2. Locate frame PNG and metadata JSON inside the directory
-        let (framePNGURL, metadataURL) = try locateAssets(in: resourceBase, deviceDir: deviceDir)
+        // 2. Determine variant name
+        let variant: String
+        if let color, !color.isEmpty {
+            variant = "flat-\(color)"
+        } else {
+            variant = "flat"
+        }
+
+        // 3. Locate frame PNG and metadata JSON
+        let (framePNGURL, metadataURL) = try locateAssets(in: resourceBase, deviceDir: deviceDir, variant: variant)
 
         // 3. Parse metadata
         let metadataData = try Data(contentsOf: metadataURL)
@@ -123,12 +132,12 @@ struct DeviceFrameCompositor {
 
     // MARK: - Internals
 
-    /// Find the flat-variant frame PNG and metadata JSON in the given directory.
+    /// Find frame PNG and metadata JSON for a given variant in the device directory.
     private static func locateAssets(
-        in directory: URL, deviceDir: String
+        in directory: URL, deviceDir: String, variant: String = "flat"
     ) throws -> (png: URL, json: URL) {
-        let framePNG = directory.appendingPathComponent("\(deviceDir)_flat_frame.png")
-        let metadataJSON = directory.appendingPathComponent("\(deviceDir)_flat_metadata.json")
+        let framePNG = directory.appendingPathComponent("\(deviceDir)_\(variant)_frame.png")
+        let metadataJSON = directory.appendingPathComponent("\(deviceDir)_\(variant)_metadata.json")
 
         guard FileManager.default.fileExists(atPath: framePNG.path) else {
             throw FramingError.resourceNotFound(framePNG.lastPathComponent)

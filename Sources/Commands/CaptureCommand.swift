@@ -31,6 +31,9 @@ struct CaptureCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Device frame: device name (e.g. \"iPhone 16 Pro\") or \"none\".")
     var frame: String?
 
+    @Option(name: .long, help: "Frame color variant (e.g. \"black-titanium\").")
+    var frameColor: String?
+
     func run() async throws {
         let fmt = OutputFormatter(format: parseFormat())
 
@@ -146,6 +149,7 @@ struct CaptureCommand: AsyncParsableCommand {
                         try DeviceFrameCompositor.frame(
                             screenshot: screenshotURL,
                             device: deviceName,
+                            color: frameColor,
                             outputURL: framedURL
                         )
                     } catch {
