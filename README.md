@@ -1,6 +1,17 @@
 # FrameHero CLI
 
-Automate App Store screenshot capture across multiple locales with a single command.
+Automate App Store screenshots from the command line. One config file. One command. Every screen, every locale, with device frames.
+
+```bash
+framehero capture
+```
+
+- Captures screenshots across your app's screens automatically using XCUITest
+- Supports multiple locales in a single run
+- Wraps screenshots in pixel-perfect device frames (iPhone, iPad)
+- Works with any app layout — tab bars, sidebars, navigation stacks
+- No test targets or XCUITest setup required in your project
+- AI-agent friendly — fully non-interactive, config-driven
 
 ## Requirements
 
