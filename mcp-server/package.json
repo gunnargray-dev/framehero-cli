@@ -1,0 +1,18 @@
+{
+  "name": "@framehero/mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for FrameHero CLI — capture App Store screenshots from AI agents",
+  "type": "module",
+  "bin": {
+    "framehero-mcp": "./index.js"
+  },
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": ["mcp", "framehero", "screenshots", "app-store", "xcode", "ios"],
+  "author": "FrameHero",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0"
+  }
+}
