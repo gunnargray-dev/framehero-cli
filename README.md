@@ -2,6 +2,14 @@
 
 Automate App Store screenshot capture across multiple locales with a single command.
 
+## Requirements
+
+- macOS 14+, Xcode 15+ with Simulator installed
+- A booted iOS Simulator (`xcrun simctl boot "iPhone 16 Pro Max"`)
+- Your app installed on the simulator (build & run from Xcode first)
+- **Accessibility permission** for your terminal app — required for `framehero init` screen discovery.
+  Grant access in **System Settings > Privacy & Security > Accessibility**.
+
 ## Install
 
 ```bash
@@ -11,26 +19,19 @@ brew tap gunnargray-dev/tap && brew install framehero
 Or from source:
 
 ```bash
-git clone https://github.com/gunnargray-dev/FrameHero.git
-cd FrameHero
+git clone https://github.com/gunnargray-dev/framehero-cli.git
+cd framehero-cli
 swift build -c release
 cp .build/release/framehero /usr/local/bin/
 ```
 
-## Requirements
-
-- macOS 14+, Xcode 15+ with Simulator installed
-- A booted iOS Simulator (`xcrun simctl boot "iPhone 16 Pro Max"`)
-- **Accessibility permission** for your terminal app — required for `tap` and `navigate` actions.
-  Grant access in **System Settings > Privacy & Security > Accessibility** for Terminal, iTerm2, Warp, or whichever terminal you use. `framehero` will check this before capture and show a clear error if missing.
-
 ## Quick Start
 
 ```bash
-# 1. Discover your app's screens
+# 1. Generate a config file
 framehero init --bundle-id com.myapp --scheme MyApp
 
-# 2. Capture across locales
+# 2. Edit framehero.yml if needed, then capture
 framehero capture
 ```
 
@@ -79,6 +80,10 @@ Discovers your app's screens and generates `framehero.yml`.
 framehero init --bundle-id com.myapp --scheme MyApp
 ```
 
+Works in two modes:
+- **Interactive** (terminal): shows discovered screens, prompts for selection and locales
+- **Non-interactive** (AI agent / CI): includes all discovered screens with defaults, prints config path
+
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--bundle-id` | required | App bundle identifier |
@@ -95,6 +100,8 @@ framehero capture
 framehero capture --config ./my.yml --output ./shots --locales de-DE,ja-JP
 ```
 
+For screens with `tap` or `navigate` actions, `framehero` generates and runs an XCUITest to interact with your app. For `launch`-only configs, it uses `simctl` directly (faster, no Xcode build step).
+
 | Flag | Default | Description |
 |------|---------|-------------|
 | `--config` | ./framehero.yml | Config file path |
@@ -107,7 +114,12 @@ framehero capture --config ./my.yml --output ./shots --locales de-DE,ja-JP
 
 ## AI Agent Usage
 
-AI agents (Claude Code, Codex) can write `framehero.yml` directly by reading your source code, then run `framehero capture`. No interactive setup needed.
+AI agents (Claude Code, Codex) can use `framehero` in two ways:
+
+1. **Run `framehero init`** non-interactively to generate a starter config, then edit it
+2. **Write `framehero.yml` directly** by reading your source code, then run `framehero capture`
+
+No interactive setup needed. The generated config includes comments explaining each field.
 
 ## FrameHero Integration
 
@@ -137,11 +149,17 @@ Imported into FrameHero project "MyApp"
 
 ## Troubleshooting
 
-**"Accessibility permission required"** — `tap` and `navigate` actions use macOS Accessibility to interact with the Simulator window. Go to System Settings > Privacy & Security > Accessibility and add your terminal app.
+**"No simulator booted"** — Boot a simulator first: `xcrun simctl boot "iPhone 16 Pro Max"`
 
-**Navigation not working** — Make sure the Simulator is visible on screen (not minimized) and the app is launched. The screen names in `framehero.yml` should match the order of sidebar items or tab bar items in your app.
+**"App not found on simulator"** — Build and run your app from Xcode at least once so it's installed on the simulator.
 
-**Wrong screenshots** — `framehero` relaunches your app before each screen capture. If your app restores navigation state on launch, the initial screen may not be the root view. Consider resetting state on launch or using `launch` for the first screen only.
+**"Xcode Command Line Tools required"** — Run `xcode-select --install`.
+
+**"XCUITest failed: Could not find element"** — The accessibility label in your config doesn't match an element in your app. Check labels using Xcode's Accessibility Inspector.
+
+**"Accessibility permission required"** — `framehero init` uses macOS Accessibility to discover screens. Go to System Settings > Privacy & Security > Accessibility and add your terminal app.
+
+**Wrong simulator used** — If the config specifies a simulator that isn't booted, `framehero` uses whichever simulator is booted and prints a warning. Boot the right one or update your config.
 
 ## License
 

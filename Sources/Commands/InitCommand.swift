@@ -20,10 +20,11 @@ struct InitCommand: AsyncParsableCommand {
     var output: String = "./framehero.yml"
 
     func run() async throws {
-        guard isatty(fileno(stdin)) != 0 else {
-            print("Error: `framehero init` must be run interactively.")
-            throw ExitCode(1)
-        }
+        let interactive = isatty(fileno(stdin)) != 0
+
+        // Pre-flight: ensure simulator is booted and app is installed
+        let _ = try SimulatorValidator.checkBootedSimulator()
+        try SimulatorValidator.checkAppInstalled(bundleId: bundleId)
 
         print("Launching \(bundleId) on \(simulator)...")
 
@@ -41,40 +42,47 @@ struct InitCommand: AsyncParsableCommand {
             throw ExitCode(2)
         }
 
-        print("\nFound \(screens.count) screens:")
-        for (i, screen) in screens.enumerated() {
-            print("  \(i + 1). \(screen.name) (\(screen.path))")
-        }
-
-        print("\nSelect screens to capture (comma-separated numbers, or 'all'):", terminator: " ")
-        guard let selectionInput = readLine()?.trimmingCharacters(in: .whitespaces) else {
-            throw ExitCode(1)
-        }
-
         let selectedScreens: [UIDiscovery.DiscoveredScreen]
-        if selectionInput.lowercased() == "all" {
-            selectedScreens = screens
-        } else {
-            let indices = selectionInput.components(separatedBy: ",")
-                .compactMap { Int($0.trimmingCharacters(in: .whitespaces)) }
-                .map { $0 - 1 }
-                .filter { $0 >= 0 && $0 < screens.count }
-            selectedScreens = indices.map { screens[$0] }
-        }
-
-        guard !selectedScreens.isEmpty else {
-            print("No screens selected.")
-            throw ExitCode(1)
-        }
-
-        print("Locales (comma-separated) [en-US]:", terminator: " ")
-        let localeInput = readLine()?.trimmingCharacters(in: .whitespaces) ?? ""
         let locales: [String]
-        if localeInput.isEmpty {
-            locales = ["en-US"]
+
+        if interactive {
+            print("\nFound \(screens.count) screens:")
+            for (i, screen) in screens.enumerated() {
+                print("  \(i + 1). \(screen.name) (\(screen.path))")
+            }
+
+            print("\nSelect screens to capture (comma-separated numbers, or 'all'):", terminator: " ")
+            guard let selectionInput = readLine()?.trimmingCharacters(in: .whitespaces) else {
+                throw ExitCode(1)
+            }
+
+            if selectionInput.lowercased() == "all" {
+                selectedScreens = screens
+            } else {
+                let indices = selectionInput.components(separatedBy: ",")
+                    .compactMap { Int($0.trimmingCharacters(in: .whitespaces)) }
+                    .map { $0 - 1 }
+                    .filter { $0 >= 0 && $0 < screens.count }
+                selectedScreens = indices.map { screens[$0] }
+            }
+
+            guard !selectedScreens.isEmpty else {
+                print("No screens selected.")
+                throw ExitCode(1)
+            }
+
+            print("Locales (comma-separated) [en-US]:", terminator: " ")
+            let localeInput = readLine()?.trimmingCharacters(in: .whitespaces) ?? ""
+            if localeInput.isEmpty {
+                locales = ["en-US"]
+            } else {
+                locales = localeInput.components(separatedBy: ",")
+                    .map { $0.trimmingCharacters(in: .whitespaces) }
+            }
         } else {
-            locales = localeInput.components(separatedBy: ",")
-                .map { $0.trimmingCharacters(in: .whitespaces) }
+            // Non-interactive: use all screens and default locale
+            selectedScreens = screens
+            locales = ["en-US"]
         }
 
         let config = FrameHeroConfig(
@@ -86,9 +94,13 @@ struct InitCommand: AsyncParsableCommand {
         )
 
         do {
-            try ConfigParser.save(config, to: output)
-            print("\nSaved to \(output)")
-            print("Run `framehero capture` to start capturing.")
+            try ConfigParser.saveWithComments(config, to: output)
+            if interactive {
+                print("\nSaved to \(output)")
+                print("Run `framehero capture` to start capturing.")
+            } else {
+                print(output)
+            }
         } catch {
             print("Error writing config: \(error.localizedDescription)")
             throw ExitCode(1)

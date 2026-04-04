@@ -37,7 +37,7 @@ struct ResultCollector {
         // Get the result bundle's JSON graph
         let graphJSON = try runProcess(
             "/usr/bin/xcrun",
-            args: ["xcresulttool", "get", "--path", resultBundle.path, "--format", "json"]
+            args: ["xcresulttool", "get", "object", "--legacy", "--path", resultBundle.path, "--format", "json"]
         )
 
         guard let data = graphJSON.data(using: .utf8),
@@ -56,7 +56,7 @@ struct ResultCollector {
             let _ = try? runProcess(
                 "/usr/bin/xcrun",
                 args: [
-                    "xcresulttool", "export",
+                    "xcresulttool", "export", "--legacy",
                     "--path", resultBundle.path,
                     "--id", ref.id,
                     "--output-path", tempFile.path,

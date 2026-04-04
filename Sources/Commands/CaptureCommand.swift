@@ -40,15 +40,7 @@ struct CaptureCommand: AsyncParsableCommand {
             throw ExitCode(1)
         }
 
-        // 2. Resolve overrides
-        let targetLocales = resolveLocales(from: cfg)
-        let simDevice = simulator ?? cfg.app.simulator ?? "iPhone 16 Pro Max"
-        let outputDir = URL(fileURLWithPath: output ?? cfg.output ?? "./captures")
-        let projectName = project ?? cfg.project ?? cfg.app.scheme
-
-        fmt.printHeader("Capturing \(cfg.screens.count) screens in \(targetLocales.count) locales on \(simDevice)\n")
-
-        // 3. Check accessibility permissions if any screen needs navigation
+        // 2. Pre-flight validation
         let hasNavigation = cfg.screens.contains { screen in
             let action = try? ScreenAction.parse(screen.action)
             switch action {
@@ -59,19 +51,44 @@ struct CaptureCommand: AsyncParsableCommand {
 
         if hasNavigation {
             do {
-                try TestRunner.checkAccessibility()
+                try SimulatorValidator.checkXcodebuild()
             } catch {
                 fmt.printError(error.localizedDescription)
                 throw ExitCode(1)
             }
         }
 
-        // 4. Capture screenshots for each locale
+        let simDevice: String
+        do {
+            let requested = simulator ?? cfg.app.simulator ?? "iPhone 16 Pro Max"
+            simDevice = try SimulatorValidator.resolveSimulator(requested: requested)
+        } catch {
+            fmt.printError(error.localizedDescription)
+            throw ExitCode(1)
+        }
+
+        do {
+            try SimulatorValidator.checkAppInstalled(bundleId: cfg.app.bundleId)
+        } catch {
+            fmt.printError(error.localizedDescription)
+            throw ExitCode(1)
+        }
+
+        // 3. Resolve overrides
+        let targetLocales = resolveLocales(from: cfg)
+        let outputDir = URL(fileURLWithPath: output ?? cfg.output ?? "./captures")
+        let projectName = project ?? cfg.project ?? cfg.app.scheme
+
+        fmt.printHeader("Capturing \(cfg.screens.count) screens in \(targetLocales.count) locales on \(simDevice)\n")
+
+        // 4. Decide capture strategy
+        let useXCUITest = hasNavigation
+
+        // 5. Capture screenshots for each locale
         var allResults: [(locale: String, screens: [String])] = []
         var hadFailure = false
 
         for locale in targetLocales {
-            // Set simulator locale via simctl
             do {
                 try setSimulatorLocale(locale, bundleId: cfg.app.bundleId)
             } catch {
@@ -80,15 +97,23 @@ struct CaptureCommand: AsyncParsableCommand {
                 continue
             }
 
-            // Capture all screens
             do {
-                let screenshots = try TestRunner.captureScreens(
-                    screens: cfg.screens,
-                    bundleId: cfg.app.bundleId,
-                    simulator: simDevice,
-                    locale: locale,
-                    outputDir: outputDir
-                )
+                let screenshots: [(name: String, url: URL)]
+
+                if useXCUITest {
+                    screenshots = try captureViaXCUITest(
+                        cfg: cfg,
+                        simulator: simDevice,
+                        locale: locale,
+                        outputDir: outputDir
+                    )
+                } else {
+                    screenshots = try captureViaSimctl(
+                        cfg: cfg,
+                        locale: locale,
+                        outputDir: outputDir
+                    )
+                }
 
                 let screenNames = screenshots.map(\.name)
                 allResults.append((locale: locale, screens: screenNames))
@@ -101,7 +126,7 @@ struct CaptureCommand: AsyncParsableCommand {
             }
         }
 
-        // 4. Import into FrameHero project
+        // 6. Import into FrameHero project
         let totalScreenshots = allResults.reduce(0) { $0 + $1.screens.count }
         var imported = false
 
@@ -119,7 +144,7 @@ struct CaptureCommand: AsyncParsableCommand {
             }
         }
 
-        // 5. Summary
+        // 7. Summary
         fmt.printSummary(
             total: totalScreenshots,
             output: outputDir.path,
@@ -129,6 +154,137 @@ struct CaptureCommand: AsyncParsableCommand {
 
         if hadFailure {
             throw ExitCode(totalScreenshots > 0 ? 3 : 2)
+        }
+    }
+
+    // MARK: - XCUITest capture
+
+    private func captureViaXCUITest(
+        cfg: FrameHeroConfig,
+        simulator: String,
+        locale: String,
+        outputDir: URL
+    ) throws -> [(name: String, url: URL)] {
+        let tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("framehero-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        let testDir = tempDir.appendingPathComponent("Tests")
+
+        // Screenshots are saved directly to this directory by the XCUITest
+        let screenshotDir = tempDir.appendingPathComponent("screenshots")
+        try FileManager.default.createDirectory(at: screenshotDir, withIntermediateDirectories: true)
+
+        // Generate XCUITest source
+        let testFile = try TestGenerator.generate(
+            screens: cfg.screens,
+            bundleId: cfg.app.bundleId,
+            screenshotDir: screenshotDir.path,
+            outputDirectory: testDir
+        )
+
+        // Generate throwaway Xcode project
+        let xcodeproj = try XcodeProjectGenerator.generate(
+            testFileURL: testFile,
+            projectDir: tempDir
+        )
+
+        // Run xcodebuild test
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")
+        process.arguments = [
+            "xcodebuild", "test",
+            "-project", xcodeproj.path,
+            "-scheme", "FrameHeroCaptureTests",
+            "-destination", "platform=iOS Simulator,name=\(simulator)",
+        ]
+
+        let errPipe = Pipe()
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = errPipe
+
+        // Read stderr asynchronously to prevent pipe buffer deadlock
+        var errData = Data()
+        errPipe.fileHandleForReading.readabilityHandler = { handle in
+            errData.append(handle.availableData)
+        }
+
+        try process.run()
+        process.waitUntilExit()
+
+        errPipe.fileHandleForReading.readabilityHandler = nil
+
+        guard process.terminationStatus == 0 else {
+            let errMsg = String(data: errData, encoding: .utf8) ?? ""
+            let lines = errMsg.components(separatedBy: .newlines)
+            let errorLines = lines.filter {
+                $0.contains("error:") || $0.contains("Could not find") || $0.contains("fatal")
+            }.prefix(10)
+            let summary = errorLines.isEmpty
+                ? "XCUITest failed (exit code \(process.terminationStatus)). Check that Xcode and simulator are configured correctly."
+                : errorLines.joined(separator: "\n")
+            throw CaptureError.xctestFailed(summary)
+        }
+
+        // Collect screenshots from the filesystem
+        let localeDir = outputDir.appendingPathComponent(locale)
+        try FileManager.default.createDirectory(at: localeDir, withIntermediateDirectories: true)
+
+        var results: [(name: String, url: URL)] = []
+
+        for screen in cfg.screens {
+            let srcFile = screenshotDir.appendingPathComponent("\(screen.name).png")
+            let destFile = localeDir.appendingPathComponent("\(screen.name).png")
+
+            guard FileManager.default.fileExists(atPath: srcFile.path) else { continue }
+
+            if FileManager.default.fileExists(atPath: destFile.path) {
+                try FileManager.default.removeItem(at: destFile)
+            }
+            try FileManager.default.copyItem(at: srcFile, to: destFile)
+            results.append((name: screen.name, url: destFile))
+        }
+
+        return results
+    }
+
+    // MARK: - simctl capture (launch-only, no navigation)
+
+    private func captureViaSimctl(
+        cfg: FrameHeroConfig,
+        locale: String,
+        outputDir: URL
+    ) throws -> [(name: String, url: URL)] {
+        let localeDir = outputDir.appendingPathComponent(locale)
+        try FileManager.default.createDirectory(at: localeDir, withIntermediateDirectories: true)
+
+        var results: [(name: String, url: URL)] = []
+
+        for screen in cfg.screens {
+            // Relaunch for clean state
+            try? simctl("terminate", "booted", cfg.app.bundleId)
+            Thread.sleep(forTimeInterval: 0.5)
+            try simctl("launch", "booted", cfg.app.bundleId)
+            Thread.sleep(forTimeInterval: 2.0)
+
+            let screenshotURL = localeDir.appendingPathComponent("\(screen.name).png")
+            try simctl("io", "booted", "screenshot", screenshotURL.path)
+            results.append((name: screen.name, url: screenshotURL))
+        }
+
+        return results
+    }
+
+    private func simctl(_ args: String...) throws {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/xcrun")
+        process.arguments = ["simctl"] + args
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+        try process.run()
+        process.waitUntilExit()
+        guard process.terminationStatus == 0 else {
+            throw CaptureError.simctlFailed
         }
     }
 
@@ -170,5 +326,19 @@ struct CaptureCommand: AsyncParsableCommand {
             return override.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }
         }
         return cfg.locales
+    }
+}
+
+enum CaptureError: LocalizedError {
+    case xctestFailed(String)
+    case simctlFailed
+
+    var errorDescription: String? {
+        switch self {
+        case .xctestFailed(let detail):
+            return "XCUITest failed: \(detail)"
+        case .simctlFailed:
+            return "simctl command failed"
+        }
     }
 }
