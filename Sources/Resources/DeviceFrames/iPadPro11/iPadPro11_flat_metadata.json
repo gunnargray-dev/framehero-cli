@@ -1,0 +1,26 @@
+{
+  "id": "iPadPro11-flat",
+  "device": "iPad Pro 11\"",
+  "variant": "flat",
+  "color": "Space Gray",
+  "frame": {
+    "file": "frame.png",
+    "size": [1880, 2640]
+  },
+  "screen": {
+    "points": [
+      [106, 110],
+      [1774, 110],
+      [1774, 2530],
+      [106, 2530]
+    ],
+    "size": [1668, 2420],
+    "cornerRadius": 36,
+    "cornerCurve": "continuous",
+    "requiresPerspective": false
+  },
+  "adjustments": {
+    "brightness": 1.0,
+    "contrast": 1.0
+  }
+}

@@ -6,6 +6,7 @@ struct FrameHeroConfig: Codable {
     var locales: [String]
     var output: String?
     var project: String?
+    var frame: String?
 
     struct AppConfig: Codable {
         var bundleId: String

@@ -87,6 +87,15 @@ struct ConfigParser {
             lines.append("project: \(project)")
         }
 
+        // Frame section
+        lines.append("")
+        lines.append("# Device frame: device name (e.g. \"iPhone 16 Pro\"), \"auto\" to match simulator, or \"none\"")
+        if let frame = config.frame {
+            lines.append("frame: \(frame)")
+        } else {
+            lines.append("# frame: auto")
+        }
+
         lines.append("")
 
         let yamlString = lines.joined(separator: "\n")

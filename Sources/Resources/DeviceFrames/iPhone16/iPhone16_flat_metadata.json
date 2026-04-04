@@ -1,0 +1,26 @@
+{
+  "id": "iPhone16-flat",
+  "device": "iPhone 16",
+  "variant": "flat",
+  "color": "Black",
+  "frame": {
+    "file": "frame.png",
+    "size": [1359, 2736]
+  },
+  "screen": {
+    "points": [
+      [90, 90],
+      [1269, 90],
+      [1269, 2646],
+      [90, 2646]
+    ],
+    "size": [1179, 2556],
+    "cornerRadius": 152,
+    "cornerCurve": "continuous",
+    "requiresPerspective": false
+  },
+  "adjustments": {
+    "brightness": 1.0,
+    "contrast": 1.0
+  }
+}

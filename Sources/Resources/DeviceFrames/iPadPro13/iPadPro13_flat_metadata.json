@@ -1,0 +1,26 @@
+{
+  "id": "iPadPro13-flat",
+  "device": "iPad Pro 13\"",
+  "variant": "flat",
+  "color": "Space Gray",
+  "frame": {
+    "file": "frame.png",
+    "size": [2300, 3000]
+  },
+  "screen": {
+    "points": [
+      [118, 124],
+      [2182, 124],
+      [2182, 2876],
+      [118, 2876]
+    ],
+    "size": [2064, 2752],
+    "cornerRadius": 36,
+    "cornerCurve": "continuous",
+    "requiresPerspective": false
+  },
+  "adjustments": {
+    "brightness": 1.0,
+    "contrast": 1.0
+  }
+}

@@ -15,7 +15,10 @@ let package = Package(
                 .product(name: "ArgumentParser", package: "swift-argument-parser"),
                 .product(name: "Yams", package: "Yams"),
             ],
-            path: "Sources"
+            path: "Sources",
+            resources: [
+                .copy("Resources/DeviceFrames"),
+            ]
         ),
     ]
 )

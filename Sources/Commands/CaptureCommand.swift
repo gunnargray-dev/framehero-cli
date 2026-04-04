@@ -28,6 +28,9 @@ struct CaptureCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Output format: text or json.")
     var format: String?
 
+    @Option(name: .long, help: "Device frame: device name (e.g. \"iPhone 16 Pro\") or \"none\".")
+    var frame: String?
+
     func run() async throws {
         let fmt = OutputFormatter(format: parseFormat())
 
@@ -126,7 +129,33 @@ struct CaptureCommand: AsyncParsableCommand {
             }
         }
 
-        // 6. Import into FrameHero project
+        // 6. Apply device frames if requested
+        let frameDevice = frame ?? cfg.frame
+        if let frameDevice, frameDevice.lowercased() != "none" {
+            let deviceName = frameDevice == "auto" ? simDevice : frameDevice
+            fmt.printProgress("Applying \(deviceName) device frame...")
+
+            for result in allResults {
+                let localeDir = outputDir.appendingPathComponent(result.locale)
+                for screenName in result.screens {
+                    let screenshotURL = localeDir.appendingPathComponent("\(screenName).png")
+                    guard FileManager.default.fileExists(atPath: screenshotURL.path) else { continue }
+
+                    let framedURL = localeDir.appendingPathComponent("\(screenName)_framed.png")
+                    do {
+                        try DeviceFrameCompositor.frame(
+                            screenshot: screenshotURL,
+                            device: deviceName,
+                            outputURL: framedURL
+                        )
+                    } catch {
+                        fmt.printError("Framing \(screenName): \(error.localizedDescription)")
+                    }
+                }
+            }
+        }
+
+        // 7. Import into FrameHero project
         let totalScreenshots = allResults.reduce(0) { $0 + $1.screens.count }
         var imported = false
 

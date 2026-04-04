@@ -1,0 +1,26 @@
+{
+  "id": "iPhone16Pro-flat",
+  "device": "iPhone 16 Pro",
+  "variant": "flat",
+  "color": "Natural Titanium",
+  "frame": {
+    "file": "frame.png",
+    "size": [1350, 2760]
+  },
+  "screen": {
+    "points": [
+      [72, 69],
+      [1278, 69],
+      [1278, 2691],
+      [72, 2691]
+    ],
+    "size": [1206, 2622],
+    "cornerRadius": 164,
+    "cornerCurve": "continuous",
+    "requiresPerspective": false
+  },
+  "adjustments": {
+    "brightness": 1.0,
+    "contrast": 1.0
+  }
+}
