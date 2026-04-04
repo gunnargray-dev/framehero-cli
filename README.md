@@ -60,15 +60,39 @@ locales:
 
 output: ./captures
 project: MyApp
+
+# Device frame: "auto" (match simulator), device name, or "none"
+frame: auto
 ```
+
+### Screen Labels
+
+The labels in `tap` and `navigate` actions must match the **text visible in the UI** — not Swift type names or variable names. These are what XCUITest uses to find and tap elements.
+
+**Where to find labels in SwiftUI code:**
+
+| Code pattern | Label to use |
+|---|---|
+| `Label("Map", systemImage: "map")` | `"Map"` |
+| `Text("Settings")` on a button | `"Settings"` |
+| `.navigationTitle("Profile")` | `"Profile"` |
+| `.accessibilityLabel("Search")` | `"Search"` |
+
+**What does NOT work:**
+- Swift type names (`CollectionsView`, `HomeScreen`)
+- SF Symbol names (`book.closed`, `magnifyingglass`)
+- Enum cases (`NavigationOptions.collections`)
+- Variable names (`searchButton`, `settingsTab`)
 
 ### Actions
 
 | Action | Example | Description |
 |--------|---------|-------------|
 | `launch` | `launch` | Capture the launch screen |
-| `tap` | `tap "Search"` | Tap an element by accessibility label |
+| `tap` | `tap "Search"` | Tap an element by its UI label |
 | `navigate` | `navigate "A" > "B"` | Sequential taps with 1s wait between |
+
+If elements are inside a sidebar or behind a back button, the CLI handles that automatically.
 
 ## Commands
 
@@ -98,6 +122,7 @@ Captures screenshots across all locales defined in the config.
 ```bash
 framehero capture
 framehero capture --config ./my.yml --output ./shots --locales de-DE,ja-JP
+framehero capture --frame auto --frame-color black-titanium
 ```
 
 For screens with `tap` or `navigate` actions, `framehero` generates and runs an XCUITest to interact with your app. For `launch`-only configs, it uses `simctl` directly (faster, no Xcode build step).
@@ -111,15 +136,35 @@ For screens with `tap` or `navigate` actions, `framehero` generates and runs an 
 | `--project` | app name | FrameHero project name |
 | `--no-import` | false | Skip FrameHero import |
 | `--format` | auto | Output format: text or json |
+| `--frame` | from config | Device frame: device name, `auto`, or `none` |
+| `--frame-color` | default | Frame color variant (e.g. `black-titanium`) |
+
+### Device Frames
+
+Screenshots can be wrapped in device bezels. Both raw and framed versions are saved:
+
+```
+captures/en-US/
+  Home.png              # raw screenshot
+  Home_framed.png       # with device frame
+```
+
+**Supported devices:** iPhone 16, iPhone 16 Plus, iPhone 16 Pro, iPhone 16 Pro Max, iPad Pro 11", iPad Pro 13"
+
+**Color variants:** Natural Titanium (default), Black Titanium (Pro/Pro Max only)
+
+iPhone 17 models automatically use the matching iPhone 16 frame (same form factor).
 
 ## AI Agent Usage
 
-AI agents (Claude Code, Codex) can use `framehero` in two ways:
+AI agents (Claude Code, Codex) can write `framehero.yml` directly by reading your source code, then run `framehero capture`. No interactive setup needed.
 
-1. **Run `framehero init`** non-interactively to generate a starter config, then edit it
-2. **Write `framehero.yml` directly** by reading your source code, then run `framehero capture`
+**Agent instructions:**
 
-No interactive setup needed. The generated config includes comments explaining each field.
+1. Read the project's SwiftUI views to identify screens and navigation structure
+2. Find the UI labels for each screen — look for `Label()`, `Text()`, `.accessibilityLabel()`, and `navigationTitle()` in the source code. Use the **text string**, not the Swift type or variable name
+3. Write `framehero.yml` with the correct bundle ID, scheme, screen names, and actions
+4. Run `framehero capture`
 
 ## FrameHero Integration
 
@@ -134,6 +179,7 @@ Capturing 3 screens in 3 locales on iPhone 16 Pro Max
   ✓ en-US: Home, Search, Settings (3 screenshots)
   ✓ de-DE: Home, Search, Settings (3 screenshots)
   ✓ ja-JP: Home, Search, Settings (3 screenshots)
+  Applying iPhone 16 Pro Max device frame...
 
 9 screenshots saved to ./captures
 Imported into FrameHero project "MyApp"
@@ -155,7 +201,9 @@ Imported into FrameHero project "MyApp"
 
 **"Xcode Command Line Tools required"** — Run `xcode-select --install`.
 
-**"XCUITest failed: Could not find element"** — The accessibility label in your config doesn't match an element in your app. Check labels using Xcode's Accessibility Inspector.
+**"Could not find element"** — The label in your config doesn't match the UI text. Read the source code for `Label()`, `Text()`, or `.accessibilityLabel()` values — use the text string, not the Swift type name.
+
+**"Device not supported"** — The `--frame` device name doesn't match a bundled frame. Check supported devices above.
 
 **"Accessibility permission required"** — `framehero init` uses macOS Accessibility to discover screens. Go to System Settings > Privacy & Security > Accessibility and add your terminal app.
 
