@@ -180,6 +180,7 @@ struct CaptureCommand: AsyncParsableCommand {
         // 7. Summary
         fmt.printSummary(
             total: totalScreenshots,
+            localeCount: targetLocales.count,
             output: outputDir.path,
             project: imported ? projectName : nil,
             imported: imported

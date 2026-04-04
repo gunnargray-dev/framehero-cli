@@ -177,13 +177,28 @@ AI agents (Claude Code, Codex) can write `framehero.yml` directly by reading you
 3. Write `framehero.yml` with the correct bundle ID, scheme, screen names, and actions
 4. Run `framehero capture`
 
-## FrameHero Integration
+## From Capture to App Store
 
-If [FrameHero.app](https://framehero.dev) is installed, captured screenshots are automatically imported into a project with device frames applied. Open FrameHero to edit, add text overlays, and export.
+The CLI gives you raw screenshots and device-framed versions — but App Store screenshots usually need more: promotional text, backgrounds, and localized copy. That's what [FrameHero](https://framehero.dev) is for.
 
-## Output
+**What the CLI produces:**
 
-**Terminal:**
+```
+captures/en-US/
+  Home.png              # raw simulator screenshot
+  Home_framed.png       # screenshot inside device bezel
+```
+
+**What FrameHero.app adds:**
+
+- Text overlays with localized copy
+- Custom backgrounds and gradients
+- Layout templates synced across locales
+- Direct export to App Store Connect specs
+
+If FrameHero.app is installed, `framehero capture` automatically imports screenshots into a project — open the app and they're ready to design. No manual file wrangling.
+
+**CLI output:**
 ```
 Capturing 3 screens in 3 locales on iPhone 16 Pro Max
 
@@ -192,8 +207,8 @@ Capturing 3 screens in 3 locales on iPhone 16 Pro Max
   ✓ ja-JP: Home, Search, Settings (3 screenshots)
   Applying iPhone 16 Pro Max device frame...
 
-9 screenshots saved to ./captures
-Imported into FrameHero project "MyApp"
+9 screenshots captured across 3 locales
+Add text overlays and export for App Store → framehero.dev
 ```
 
 **CI/piped (JSON lines):**

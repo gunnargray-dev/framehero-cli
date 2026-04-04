@@ -60,7 +60,7 @@ struct OutputFormatter {
         }
     }
 
-    func printSummary(total: Int, output: String, project: String?, imported: Bool) {
+    func printSummary(total: Int, localeCount: Int, output: String, project: String?, imported: Bool) {
         if useJSON {
             var json: [String: Any] = [
                 "total": total,
@@ -73,10 +73,15 @@ struct OutputFormatter {
                 print(str)
             }
         } else {
-            print("\n\(total) screenshots saved to \(output)")
+            if localeCount > 1 {
+                print("\n\(total) screenshots captured across \(localeCount) locales")
+            } else {
+                print("\n\(total) screenshots saved to \(output)")
+            }
             if imported, let project {
                 print("Imported into FrameHero project \"\(project)\"")
             }
+            print("Add text overlays and export for App Store \u{2192} framehero.dev")
         }
     }
 }
