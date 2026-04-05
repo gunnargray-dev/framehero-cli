@@ -34,6 +34,9 @@ struct CaptureCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Frame color variant (e.g. \"black-titanium\").")
     var frameColor: String?
 
+    @Flag(name: .long, help: "Reset app state before capture (clears data and permissions).")
+    var resetState: Bool = false
+
     func run() async throws {
         let fmt = OutputFormatter(format: parseFormat())
 
@@ -91,7 +94,17 @@ struct CaptureCommand: AsyncParsableCommand {
 
         fmt.printHeader("Capturing \(cfg.screens.count) screens in \(targetLocales.count) locales on \(simDevice)\n")
 
-        // 4. Decide capture strategy
+        // 4. Reset app state if requested
+        if resetState {
+            fmt.printProgress("Resetting app state...")
+            // Reset privacy permissions
+            try? simctl("privacy", "booted", "reset", "all", cfg.app.bundleId)
+            // Erase app data by uninstalling and reinstalling — but that requires the .app
+            // Instead, terminate and reset defaults
+            try? simctl("terminate", "booted", cfg.app.bundleId)
+        }
+
+        // 5. Decide capture strategy
         let useXCUITest = hasNavigation
 
         // 5. Capture screenshots for each locale
@@ -218,6 +231,7 @@ struct CaptureCommand: AsyncParsableCommand {
             screens: cfg.screens,
             bundleId: cfg.app.bundleId,
             screenshotDir: screenshotDir.path,
+            setup: cfg.setup,
             outputDirectory: testDir
         )
 

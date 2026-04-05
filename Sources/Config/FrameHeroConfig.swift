@@ -7,6 +7,7 @@ struct FrameHeroConfig: Codable {
     var output: String?
     var project: String?
     var frame: String?
+    var setup: [String]?
 
     struct AppConfig: Codable {
         var bundleId: String
@@ -30,12 +31,35 @@ enum ScreenAction {
     case launch
     case tap(label: String)
     case navigate(labels: [String])
+    case scroll(direction: String)
+    case swipe(direction: String)
+    case dismiss
 
     static func parse(_ raw: String) throws -> ScreenAction {
         let trimmed = raw.trimmingCharacters(in: .whitespaces)
 
         if trimmed == "launch" {
             return .launch
+        }
+
+        if trimmed == "dismiss" || trimmed == "dismiss alert" {
+            return .dismiss
+        }
+
+        if trimmed.hasPrefix("scroll ") {
+            let dir = String(trimmed.dropFirst("scroll ".count)).trimmingCharacters(in: .whitespaces).lowercased()
+            guard ["up", "down", "left", "right"].contains(dir) else {
+                throw ConfigError.invalidAction(trimmed, "Expected: scroll up|down|left|right")
+            }
+            return .scroll(direction: dir)
+        }
+
+        if trimmed.hasPrefix("swipe ") {
+            let dir = String(trimmed.dropFirst("swipe ".count)).trimmingCharacters(in: .whitespaces).lowercased()
+            guard ["up", "down", "left", "right"].contains(dir) else {
+                throw ConfigError.invalidAction(trimmed, "Expected: swipe up|down|left|right")
+            }
+            return .swipe(direction: dir)
         }
 
         if trimmed.hasPrefix("tap ") {
@@ -63,7 +87,7 @@ enum ScreenAction {
             return .navigate(labels: labels)
         }
 
-        throw ConfigError.invalidAction(trimmed, "Unknown action. Use: launch, tap \"Label\", or navigate \"A\" > \"B\"")
+        throw ConfigError.invalidAction(trimmed, "Unknown action. Use: launch, tap \"Label\", navigate \"A\" > \"B\", scroll down, swipe left, or dismiss")
     }
 
     private static func extractQuoted(from string: String, after prefix: String) -> String? {
