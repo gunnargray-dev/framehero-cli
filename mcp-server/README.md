@@ -15,7 +15,7 @@ brew tap gunnargray-dev/tap && brew install framehero
 ### Claude Code
 
 ```bash
-claude mcp add framehero -- npx @framehero/mcp-server
+claude mcp add framehero -- npx github:gunnargray-dev/framehero-mcp-server
 ```
 
 ### Cursor
@@ -27,7 +27,7 @@ Add to `.cursor/mcp.json`:
   "mcpServers": {
     "framehero": {
       "command": "npx",
-      "args": ["@framehero/mcp-server"]
+      "args": ["github:gunnargray-dev/framehero-mcp-server"]
     }
   }
 }
@@ -42,7 +42,7 @@ Add to `claude_desktop_config.json`:
   "mcpServers": {
     "framehero": {
       "command": "npx",
-      "args": ["@framehero/mcp-server"]
+      "args": ["github:gunnargray-dev/framehero-mcp-server"]
     }
   }
 }
