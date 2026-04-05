@@ -168,7 +168,32 @@ iPhone 17 models automatically use the matching iPhone 16 frame (same form facto
 
 ## AI Agent Usage
 
-AI agents (Claude Code, Codex) can write `framehero.yml` directly by reading your source code, then run `framehero capture`. No interactive setup needed.
+### MCP Server (Claude Code, Cursor)
+
+Add FrameHero as a native tool — agents can capture screenshots without shell commands:
+
+**Claude Code:**
+```bash
+claude mcp add framehero -- npx github:gunnargray-dev/framehero-mcp-server
+```
+
+**Cursor** — add to `.cursor/mcp.json`:
+```json
+{
+  "mcpServers": {
+    "framehero": {
+      "command": "npx",
+      "args": ["github:gunnargray-dev/framehero-mcp-server"]
+    }
+  }
+}
+```
+
+This exposes three tools: `framehero_write_config`, `framehero_capture`, and `framehero_list_devices`.
+
+### CLI Usage
+
+AI agents can also use the CLI directly — write `framehero.yml` by reading your source code, then run `framehero capture`. No interactive setup needed.
 
 **Agent instructions:**
 
