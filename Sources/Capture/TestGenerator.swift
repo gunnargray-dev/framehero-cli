@@ -32,34 +32,75 @@ struct TestGenerator {
         lines.append("    }")
         lines.append("")
 
-        // Helper: find and tap an element, with sidebar/navigation fallback
-        lines.append("    private func tapElement(_ label: String, in app: XCUIApplication) {")
+        // Helper: find and tap an element, with sidebar and index fallback.
+        // The fallbackIndex handles localized apps where the label changes
+        // but the tab/sidebar position stays the same.
+        lines.append("    private func tapElement(_ label: String, fallbackIndex: Int = -1, in app: XCUIApplication) {")
+        lines.append("        // Try by label first")
         lines.append("        let button = app.buttons[label]")
         lines.append("        if button.waitForExistence(timeout: 3) {")
         lines.append("            button.firstMatch.tap()")
         lines.append("            return")
         lines.append("        }")
-        lines.append("        // Element not visible — try opening sidebar/back navigation")
+        lines.append("        // Try opening sidebar/back navigation")
         lines.append("        let backButton = app.navigationBars.buttons.firstMatch")
         lines.append("        if backButton.waitForExistence(timeout: 2) {")
         lines.append("            backButton.tap()")
         lines.append("            sleep(1)")
+        lines.append("            // Retry by label in sidebar")
         lines.append("            let retryButton = app.buttons[label]")
-        lines.append("            if retryButton.waitForExistence(timeout: 5) {")
+        lines.append("            if retryButton.waitForExistence(timeout: 3) {")
         lines.append("                retryButton.firstMatch.tap()")
         lines.append("                return")
         lines.append("            }")
+        lines.append("            // Label not found (likely translated) — tap by index")
+        lines.append("            if fallbackIndex >= 0 {")
+        lines.append("                let cells = app.cells")
+        lines.append("                if cells.count > fallbackIndex {")
+        lines.append("                    cells.element(boundBy: fallbackIndex).tap()")
+        lines.append("                    return")
+        lines.append("                }")
+        lines.append("                let buttons = app.buttons")
+        lines.append("                var navButtons: [XCUIElement] = []")
+        lines.append("                for i in 0..<buttons.count {")
+        lines.append("                    let b = buttons.element(boundBy: i)")
+        lines.append("                    let size = b.frame.size")
+        lines.append("                    if size.width > 200 && size.height > 30 && size.height < 80 {")
+        lines.append("                        navButtons.append(b)")
+        lines.append("                    }")
+        lines.append("                }")
+        lines.append("                if navButtons.count > fallbackIndex {")
+        lines.append("                    navButtons[fallbackIndex].tap()")
+        lines.append("                    return")
+        lines.append("                }")
+        lines.append("            }")
         lines.append("        }")
-        lines.append("        // Last resort: any descendant with this label")
+        lines.append("        // Last resort: any descendant")
         lines.append("        let any = app.descendants(matching: .any)[label].firstMatch")
-        lines.append("        XCTAssertTrue(any.waitForExistence(timeout: 3), \"Could not find element '\\(label)'\")")
-        lines.append("        any.tap()")
+        lines.append("        if any.waitForExistence(timeout: 2) {")
+        lines.append("            any.tap()")
+        lines.append("            return")
+        lines.append("        }")
+        lines.append("        XCTFail(\"Could not find element '\\(label)' by label or index\")")
         lines.append("    }")
         lines.append("")
+
+        // Build an index map: each tap/navigate screen gets an index
+        // for fallback when labels are translated
+        var tapIndex = 0
 
         for screen in screens {
             let action = try ScreenAction.parse(screen.action)
             let methodName = "testCapture\(sanitize(screen.name))"
+
+            let currentIndex: Int
+            switch action {
+            case .launch:
+                currentIndex = -1
+            case .tap, .navigate:
+                currentIndex = tapIndex
+                tapIndex += 1
+            }
 
             lines.append("    func \(methodName)() {")
             lines.append("        let app = XCUIApplication(bundleIdentifier: \"\(bundleId)\")")
@@ -72,12 +113,13 @@ struct TestGenerator {
                 lines.append("        // Capture launch screen")
 
             case .tap(let label):
-                lines.append("        tapElement(\"\(label)\", in: app)")
+                lines.append("        tapElement(\"\(label)\", fallbackIndex: \(currentIndex), in: app)")
                 lines.append("        sleep(1)")
 
             case .navigate(let labels):
-                for label in labels {
-                    lines.append("        tapElement(\"\(label)\", in: app)")
+                for (i, label) in labels.enumerated() {
+                    let idx = i == 0 ? currentIndex : -1
+                    lines.append("        tapElement(\"\(label)\", fallbackIndex: \(idx), in: app)")
                     lines.append("        sleep(1)")
                 }
             }
