@@ -85,9 +85,9 @@ struct TestGenerator {
         lines.append("    }")
         lines.append("")
 
-        // Build an index map: each tap/navigate screen gets an index
-        // for fallback when labels are translated
-        var tapIndex = 0
+        // Build an index map: each screen gets a sidebar/tab index.
+        // Launch occupies index 0, so tap screens start at 1.
+        var screenIndex = 0
 
         for screen in screens {
             let action = try ScreenAction.parse(screen.action)
@@ -96,10 +96,11 @@ struct TestGenerator {
             let currentIndex: Int
             switch action {
             case .launch:
-                currentIndex = -1
+                currentIndex = -1 // no fallback needed for launch
+                screenIndex += 1
             case .tap, .navigate:
-                currentIndex = tapIndex
-                tapIndex += 1
+                currentIndex = screenIndex
+                screenIndex += 1
             }
 
             lines.append("    func \(methodName)() {")
