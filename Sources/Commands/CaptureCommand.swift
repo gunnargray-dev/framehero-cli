@@ -252,8 +252,10 @@ struct CaptureCommand: AsyncParsableCommand {
             let errMsg = String(data: errData, encoding: .utf8) ?? ""
             let lines = errMsg.components(separatedBy: .newlines)
             let errorLines = lines.filter {
-                $0.contains("error:") || $0.contains("Could not find") || $0.contains("fatal")
-            }.prefix(10)
+                $0.contains("error:") || $0.contains("Could not find") ||
+                $0.contains("fatal") || $0.contains("failed") ||
+                $0.contains("XCTAssert") || $0.contains("TEST FAILED")
+            }.prefix(15)
             let summary = errorLines.isEmpty
                 ? "XCUITest failed (exit code \(process.terminationStatus)). Check that Xcode and simulator are configured correctly."
                 : errorLines.joined(separator: "\n")

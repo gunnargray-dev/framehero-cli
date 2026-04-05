@@ -48,13 +48,19 @@ enum ScreenAction {
 
         if trimmed.hasPrefix("navigate ") {
             let rest = String(trimmed.dropFirst("navigate ".count))
-            let parts = rest.components(separatedBy: " > ")
+            let rawParts = rest.components(separatedBy: " > ")
                 .map { $0.trimmingCharacters(in: .whitespaces) }
-                .compactMap { extractQuotedBare($0) }
-            guard !parts.isEmpty else {
+            var labels: [String] = []
+            for part in rawParts {
+                guard let quoted = extractQuotedBare(part) else {
+                    throw ConfigError.invalidAction(trimmed, "'\(part)' must be in quotes. Expected: navigate \"A\" > \"B\"")
+                }
+                labels.append(quoted)
+            }
+            guard !labels.isEmpty else {
                 throw ConfigError.invalidAction(trimmed, "Expected: navigate \"A\" > \"B\"")
             }
-            return .navigate(labels: parts)
+            return .navigate(labels: labels)
         }
 
         throw ConfigError.invalidAction(trimmed, "Unknown action. Use: launch, tap \"Label\", or navigate \"A\" > \"B\"")
