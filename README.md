@@ -34,6 +34,7 @@ git clone https://github.com/gunnargray-dev/framehero-cli.git
 cd framehero-cli
 swift build -c release
 cp .build/release/framehero /usr/local/bin/
+cp -R .build/arm64-apple-macosx/release/framehero-cli_framehero.bundle /usr/local/bin/
 ```
 
 ## Quick Start

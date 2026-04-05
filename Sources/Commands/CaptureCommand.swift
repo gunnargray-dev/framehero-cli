@@ -66,8 +66,12 @@ struct CaptureCommand: AsyncParsableCommand {
 
         let simDevice: String
         do {
-            let requested = simulator ?? cfg.app.simulator ?? "iPhone 16 Pro Max"
-            simDevice = try SimulatorValidator.resolveSimulator(requested: requested)
+            let requested = simulator ?? cfg.app.simulator
+            if let requested {
+                simDevice = try SimulatorValidator.resolveSimulator(requested: requested)
+            } else {
+                simDevice = try SimulatorValidator.checkBootedSimulator()
+            }
         } catch {
             fmt.printError(error.localizedDescription)
             throw ExitCode(1)
