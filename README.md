@@ -158,6 +158,8 @@ Set `frame: auto` in your config to match the simulator device, or specify a dev
 
 ## Finish with FrameHero
 
+<a href="https://framehero.dev"><img src="docs/framehero-app.png" alt="FrameHero — App Store screenshot editor" width="800"></a>
+
 The CLI captures your screenshots and wraps them in device frames — but App Store listings need more. Promotional text, backgrounds, localized copy, and pixel-perfect layouts across every device size.
 
 **[FrameHero](https://framehero.dev)** picks up where the CLI leaves off:
