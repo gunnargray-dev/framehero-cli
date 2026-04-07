@@ -1,5 +1,5 @@
 {
-  "name": "@framehero/mcp-server",
+  "name": "framehero-mcp-server",
   "version": "1.0.0",
   "description": "MCP server for FrameHero CLI — capture App Store screenshots from AI agents",
   "type": "module",

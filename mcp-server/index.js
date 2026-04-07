@@ -51,7 +51,28 @@ const server = new McpServer({
 
 server.tool(
   "framehero_write_config",
-  "Write a framehero.yml config file for capturing App Store screenshots. Read the app's SwiftUI source code first to find screen labels — use the text from Label(), Text(), .accessibilityLabel(), not Swift type names.",
+  `Write a framehero.yml config file for capturing App Store screenshots.
+
+BEFORE calling this tool, read the app's SwiftUI source code to find screen labels.
+Labels must be the exact UI text from Label(), Text(), .accessibilityLabel(), or navigationTitle() — NOT Swift type names, variable names, or SF Symbol names.
+
+VALID actions:
+- "launch" — capture the first screen that appears
+- tap "Search" — tap a button/tab with this exact UI label
+- navigate "Profile" > "Settings" — tap Profile, wait, then tap Settings
+- scroll down — scroll the main view (up|down|left|right)
+- swipe left — swipe gesture (up|down|left|right)
+- dismiss — dismiss system alerts and in-app modals
+
+INVALID (will error):
+- tap SearchView (must be quoted UI text, not a type name)
+- navigate "Foo" > bar (every label must be in quotes)
+- navigate "Tab" > item 0 (no index-based navigation)
+- tap "magnifyingglass" (SF Symbol names don't work, use the Label text)
+
+LOCALES: Use labels from the app's PRIMARY language (usually English). The CLI automatically handles translated labels in other locales using position-based fallback. Do NOT create separate configs per locale — one config works for all locales.
+
+SCREEN ORDER MATTERS: List screens in the same order they appear in the app's tab bar or sidebar. The position is used as a fallback when labels are translated.`,
   {
     path: z
       .string()
@@ -66,7 +87,7 @@ server.tool(
           action: z
             .string()
             .describe(
-              'Action: "launch", \'tap "Label"\', or \'navigate "A" > "B"\'. Labels must match UI text visible to XCUITest.'
+              'Exactly one of: "launch", \'tap "ExactUILabel"\', or \'navigate "Label1" > "Label2"\'. All labels must be in double quotes and match visible UI text — not code identifiers.'
             ),
         })
       )
@@ -84,12 +105,23 @@ server.tool(
       .optional()
       .describe('Frame color variant (e.g. "black-titanium")'),
     simulator: z.string().optional().describe("Simulator device name"),
+    setup: z
+      .array(z.string())
+      .optional()
+      .describe('Steps to run before each screen capture, e.g. ["dismiss alert", "tap \\"Skip\\""]'),
   },
-  async ({ path, bundle_id, scheme, screens, locales, frame, frame_color, simulator }) => {
+  async ({ path, bundle_id, scheme, screens, locales, frame, frame_color, simulator, setup }) => {
     let yaml = `# App to capture\napp:\n  bundle-id: ${bundle_id}\n  scheme: ${scheme}\n`;
     if (simulator) yaml += `  simulator: ${simulator}\n`;
 
-    yaml += `\n# Screens to capture\n# Actions: launch, tap "Label", navigate "A" > "B"\nscreens:\n`;
+    if (setup && setup.length > 0) {
+      yaml += `\n# Steps to run before each screen capture (dismiss onboarding, permissions, etc.)\nsetup:\n`;
+      for (const s of setup) {
+        yaml += `  - ${s}\n`;
+      }
+    }
+
+    yaml += `\n# Screens to capture\n# Actions: launch, tap "Label", navigate "A" > "B", scroll down, swipe left, dismiss\nscreens:\n`;
     for (const s of screens) {
       yaml += `  - name: ${s.name}\n    action: ${s.action}\n`;
     }

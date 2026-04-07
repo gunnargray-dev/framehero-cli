@@ -175,7 +175,7 @@ Add FrameHero as a native tool — agents can capture screenshots without shell 
 
 **Claude Code:**
 ```bash
-claude mcp add framehero -- npx github:gunnargray-dev/framehero-mcp-server
+claude mcp add framehero -- npx github:gunnargray-dev/framehero-cli/mcp-server
 ```
 
 **Cursor** — add to `.cursor/mcp.json`:
@@ -184,7 +184,7 @@ claude mcp add framehero -- npx github:gunnargray-dev/framehero-mcp-server
   "mcpServers": {
     "framehero": {
       "command": "npx",
-      "args": ["github:gunnargray-dev/framehero-mcp-server"]
+      "args": ["github:gunnargray-dev/framehero-cli/mcp-server"]
     }
   }
 }

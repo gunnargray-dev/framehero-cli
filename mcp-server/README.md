@@ -1,6 +1,6 @@
 # FrameHero MCP Server
 
-MCP server for [FrameHero CLI](https://github.com/gunnargray-dev/framehero-cli) — lets AI agents capture App Store screenshots as a native tool.
+MCP server for the FrameHero CLI — lets AI agents capture App Store screenshots as a native tool. This is part of the [framehero-cli](https://github.com/gunnargray-dev/framehero-cli) repo.
 
 ## Setup
 
@@ -15,7 +15,7 @@ brew tap gunnargray-dev/tap && brew install framehero
 ### Claude Code
 
 ```bash
-claude mcp add framehero -- npx github:gunnargray-dev/framehero-mcp-server
+claude mcp add framehero -- npx github:gunnargray-dev/framehero-cli/mcp-server
 ```
 
 ### Cursor
@@ -27,7 +27,7 @@ Add to `.cursor/mcp.json`:
   "mcpServers": {
     "framehero": {
       "command": "npx",
-      "args": ["github:gunnargray-dev/framehero-mcp-server"]
+      "args": ["github:gunnargray-dev/framehero-cli/mcp-server"]
     }
   }
 }
@@ -42,7 +42,7 @@ Add to `claude_desktop_config.json`:
   "mcpServers": {
     "framehero": {
       "command": "npx",
-      "args": ["github:gunnargray-dev/framehero-mcp-server"]
+      "args": ["github:gunnargray-dev/framehero-cli/mcp-server"]
     }
   }
 }
