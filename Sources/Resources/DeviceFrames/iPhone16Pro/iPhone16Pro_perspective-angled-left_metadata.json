@@ -1,0 +1,26 @@
+{
+  "id": "iPhone16Pro-perspective-angled-left",
+  "device": "iPhone 16 Pro",
+  "variant": "perspective-angled-left",
+  "color": "Natural Titanium",
+  "frame": {
+    "file": "iPhone16Pro_perspective-angled-left_frame.png",
+    "size": [3840, 2160]
+  },
+  "screen": {
+    "points": [
+      [1539, 191],
+      [2261, 170],
+      [2261, 1990],
+      [1539, 1963]
+    ],
+    "size": [1290, 2796],
+    "cornerRadius": 0,
+    "cornerCurve": "continuous",
+    "requiresPerspective": true
+  },
+  "adjustments": {
+    "brightness": 1.0,
+    "contrast": 1.0
+  }
+}

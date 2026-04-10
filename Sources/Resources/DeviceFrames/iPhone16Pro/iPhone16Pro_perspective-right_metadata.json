@@ -1,0 +1,26 @@
+{
+  "id": "iPhone16Pro-perspective-right",
+  "device": "iPhone 16 Pro",
+  "variant": "perspective-right",
+  "color": "Natural Titanium",
+  "frame": {
+    "file": "iPhone16Pro_perspective-right_frame.png",
+    "size": [3840, 2160]
+  },
+  "screen": {
+    "points": [
+      [1099, 475],
+      [1877, 224],
+      [2625, 1745],
+      [1937, 1915]
+    ],
+    "size": [1290, 2796],
+    "cornerRadius": 0,
+    "cornerCurve": "continuous",
+    "requiresPerspective": true
+  },
+  "adjustments": {
+    "brightness": 1.0,
+    "contrast": 1.0
+  }
+}

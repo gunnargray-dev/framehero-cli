@@ -34,6 +34,9 @@ struct CaptureCommand: AsyncParsableCommand {
     @Option(name: .long, help: "Frame color variant (e.g. \"black-titanium\").")
     var frameColor: String?
 
+    @Option(name: .long, help: "Perspective variant: angled-right, angled-left, right, left.")
+    var framePerspective: String?
+
     @Flag(name: .long, help: "Reset app state before capture (clears data and permissions).")
     var resetState: Bool = false
 
@@ -167,6 +170,7 @@ struct CaptureCommand: AsyncParsableCommand {
                             screenshot: screenshotURL,
                             device: deviceName,
                             color: frameColor,
+                            perspective: framePerspective,
                             outputURL: framedURL
                         )
                     } catch {

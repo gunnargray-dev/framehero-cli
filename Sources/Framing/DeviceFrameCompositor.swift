@@ -40,6 +40,11 @@ struct ScreenInfo: Codable {
     let points: [[Double]]
     let size: [Double]
     let cornerRadius: Double
+    /// When true, the compositor uses perspective homography to warp the
+    /// screenshot into the quad defined by `points` and replaces magenta
+    /// (#FF00FF) pixels in the frame image. When false/absent, the screen
+    /// area is treated as an axis-aligned rounded rect.
+    let requiresPerspective: Bool?
 }
 
 // MARK: - Compositor
@@ -81,10 +86,18 @@ struct DeviceFrameCompositor {
     ///   - screenshot: URL of the source screenshot PNG.
     ///   - device: Display name of the device (e.g. "iPhone 16 Pro").
     ///   - color: Frame color variant (e.g. "black-titanium"). Nil uses default.
+    ///   - perspective: Perspective variant ("angled-right", "angled-left",
+    ///     "right", "left"). Nil renders the flat variant.
     ///   - outputURL: Destination URL for the composited PNG.
     /// - Returns: The `outputURL` after writing.
     @discardableResult
-    static func frame(screenshot: URL, device: String, color: String? = nil, outputURL: URL) throws -> URL {
+    static func frame(
+        screenshot: URL,
+        device: String,
+        color: String? = nil,
+        perspective: String? = nil,
+        outputURL: URL
+    ) throws -> URL {
         // 1. Resolve resource directory
         let key = normalizeKey(device)
         guard let deviceDir = deviceDirectoryMap[key] else {
@@ -98,9 +111,12 @@ struct DeviceFrameCompositor {
             throw FramingError.resourceNotFound("DeviceFrames/\(deviceDir)")
         }
 
-        // 2. Determine variant name
+        // 2. Determine variant name. Perspective variants take precedence over
+        // color variants — perspective devices ship in a single color.
         let variant: String
-        if let color, !color.isEmpty {
+        if let perspective, !perspective.isEmpty {
+            variant = "perspective-\(perspective)"
+        } else if let color, !color.isEmpty {
             variant = "flat-\(color)"
         } else {
             variant = "flat"
@@ -109,22 +125,32 @@ struct DeviceFrameCompositor {
         // 3. Locate frame PNG and metadata JSON
         let (framePNGURL, metadataURL) = try locateAssets(in: resourceBase, deviceDir: deviceDir, variant: variant)
 
-        // 3. Parse metadata
+        // 4. Parse metadata
         let metadataData = try Data(contentsOf: metadataURL)
         let metadata = try JSONDecoder().decode(FrameMetadata.self, from: metadataData)
 
-        // 4. Load images
+        // 5. Load images
         let frameImage = try loadCGImage(from: framePNGURL)
         let screenshotImage = try loadCGImage(from: screenshot)
 
-        // 5. Composite
-        let composited = try composite(
-            screenshot: screenshotImage,
-            frame: frameImage,
-            metadata: metadata
-        )
+        // 6. Composite — route to the perspective renderer when the metadata
+        // flag is set, otherwise use the flat rounded-rect path.
+        let composited: CGImage
+        if metadata.screen.requiresPerspective == true {
+            composited = try PerspectiveCompositor.composite(
+                screenshot: screenshotImage,
+                frame: frameImage,
+                metadata: metadata
+            )
+        } else {
+            composited = try composite(
+                screenshot: screenshotImage,
+                frame: frameImage,
+                metadata: metadata
+            )
+        }
 
-        // 6. Write output
+        // 7. Write output
         try writePNG(composited, to: outputURL)
 
         return outputURL
